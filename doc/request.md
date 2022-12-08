@@ -107,12 +107,91 @@ Id Appart 	    nom_dep     Valeur 	    surface_carrez
 
 
 ``` sql
-SELECT COUNT(v.id) as 'Nb 1 trim', (
-    SELECT COUNT(vente.id) FROM vente
-    LEFT JOIN bien ON bien.id = vente.id_bien
-	WHERE vente.date_vente BETWEEN '2020-04-01' AND '2020-06-30'
-    ) as 'Nb 2 Trim', ('Nb 1 trim' - 'Nb 2 trim') as nv
-FROM vente v
-LEFT JOIN bien b ON b.id = v.id_bien
-WHERE v.date_vente BETWEEN '2020-01-01' AND '2020-03-30' 
+SELECT 
+	(SELECT COUNT(id) FROM vente
+    WHERE date_vente BETWEEN '2020-01-01' AND '2020-03-30') AS firstTrim,
+	(SELECT COUNT(id) FROM vente
+	WHERE date_vente BETWEEN '2020-04-01' AND '2020-06-30') AS secondTrim,    
+	(SELECT (secondTrim - firstTrim) / firstTrim * 100) AS 'Taux évolution'
+```
+
+firstTrim 	secondTrim 	Taux évolution 	
+16632       17393 	    4.5755
+
+
+### 8. Liste des communes où le nombre de ventes a augmenté d'au moins 20% entre le premier et le second trimestre de 2020
+
+``` sql
+SELECT a.nom_com, a.firstTrim, b.secondTrim, ((b.secondTrim - a.firstTrim) / a.firstTrim * 100) AS Taux_evolution
+FROM   (SELECT c.nom_com, COUNT(c.nom_com) as firstTrim FROM commune c
+    JOIN bien b ON b.id_com = c.id
+    JOIN vente v ON v.id_bien = b.id
+    WHERE v.date_vente BETWEEN '2020-01-01' AND '2020-03-30'
+    GROUP BY c.nom_com) a
+JOIN   (SELECT c.nom_com, COUNT(c.nom_com) as secondTrim FROM commune c
+    JOIN bien b ON b.id_com = c.id
+    JOIN vente v ON v.id_bien = b.id
+    WHERE v.date_vente BETWEEN '2020-04-01' AND '2020-06-30'
+    GROUP BY c.nom_com) b ON a.nom_com = b.nom_com
+WHERE ((b.secondTrim - a.firstTrim) / a.firstTrim * 100) > 20
+ORDER BY Taux_evolution ASC
+``` 
+
+Total de 558 lignes trouvées
+
+nom_com 	                firstTrim 	secondTrim 	Taux_evolution Croissant 1 	
+Leucate 	                29 	        35 	        20.6897
+Ã‰tampes 	                24 	        29 	        20.8333
+Villers-sur-Mer 	        33 	        40 	        21.2121
+Le Chesnay-Rocquencourt 	14 	        17 	        21.4286
+Villejuif 	                23 	        28 	        21.7391
+Orly 	                    9 	        11 	        22.2222
+Boissy-Saint-LÃ©ger 	    9 	        11 	        22.2222
+Saint-Germain-en-Laye 	    35 	        43 	        22.8571
+...
+Ronchin 	                1 	        9 	        800.0000
+Lyon 7e Arrondissement  	7 	        63 	        800.0000
+Morlaix 	                1 	        11 	        1000.0000
+DÃ©voluy 	                1 	        11 	        1000.0000
+L'Isle-sur-la-Sorgue 	    1 	        13 	        1200.0000
+Cavaillon 	                1 	        17 	        1600.0000
+Lyon 8e Arrondissement  	3 	        53 	        1666.6667
+Pau 	                    3 	        78 	        2500.0000
+
+
+### 9. Liste des communes ayant eu au moins 50 ventes au 1er trimestre 
+
+``` sql
+SELECT c.nom_com, COUNT(c.nom_com) as firstTrim FROM commune c
+    JOIN bien b ON b.id_com = c.id
+    JOIN vente v ON v.id_bien = b.id
+    WHERE v.date_vente BETWEEN '2020-01-01' AND '2020-03-30'   
+	
+GROUP BY c.nom_com
+HAVING COUNT(c.nom_com) > 50
+ORDER BY firstTrim ASC
+```
+
+Total de 47 lignes trouvées
+
+nom_com 	            firstTrim Croissant	
+Puteaux 	            52
+Ajaccio 	            53
+Versailles 	            53
+Saint-Maur-des-FossÃ©s 	56
+Levallois-Perret 	    58
+Toulon 	                58
+...
+
+### 10. Différence en pourcentage du prix au mètre carré entre un appartement de 2 pièces et un appartement de 3 pièces
+
+``` sql 
+SELECT a.id, a.carrez2pieces, c.carrez3pieces, ((c.carrez3pieces - a.carrez2pieces) / a.carrez2pieces * 100) AS Taux_evolution
+FROM   (SELECT v.id, (v.valeur / b.surface_local) AS carrez2pieces FROM vente v 
+	JOIN bien b ON b.id = v.id_bien
+    WHERE b.total_piece = 2) a
+JOIN   (SELECT v.id, (v.valeur / b.surface_local) AS carrez3pieces FROM vente v 
+	JOIN bien b ON b.id = v.id_bien
+    WHERE b.total_piece = 3) c ON a.id = c.id
+ORDER BY Taux_evolution ASC
 ```
