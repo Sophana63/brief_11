@@ -11,7 +11,36 @@ COUNT(*)
 15259
 
 
-### Proportion des ventes d’appartements par le nombre de pièces.
+### 2 .Le nombre de ventes d’appartement par région pour le 1er semestre 2020
+
+``` sql
+SELECT r.nom_region, COUNT(b.id) AS 'Vente appartements' FROM bien b
+JOIN commune c ON c.id = b.id_com
+JOIN departement d ON d.id = c.id_dep
+JOIN region r ON r.id = d.id_reg
+JOIN vente v ON v.id_bien = b.id
+WHERE v.date_vente BETWEEN '2020-01-01' AND '2020-05-31'
+AND b.type_local = 'Appartement'
+GROUP BY r.nom_region
+```
+
+nom_region 	                    Vente appartements 	
+Auvergne-RhÃ´ne-Alpes 	        2373
+ÃŽle-de-France 	                10768
+Bourgogne-Franche-ComtÃ© 	    298
+Bretagne 	                    774
+Centre-Val de Loire 	        535
+Corse 	                        188
+Grand Est 	                    679
+Hauts-de-France 	            888
+Normandie 	                    650
+Nouvelle-Aquitaine 	            1544
+Occitanie               	    1288
+Pays de la Loire        	    1030
+Provence-Alpes-CÃ´te d'Azur 	1816
+
+
+### 3. Proportion des ventes d’appartements par le nombre de pièces
 
 ``` sql
 SELECT COUNT(*) as 'Nb appart', b.total_piece FROM vente v
@@ -32,8 +61,6 @@ Nb appart 	total_piece
 8 	        9
 2 	        10
 1 	        11
-
-### 3. Proportion des ventes d’appartements par le nombre de pièces
 
 ### 4. Liste des 10 départements où le prix du mètre carré est le plus élevé
 
@@ -186,12 +213,35 @@ Toulon 	                58
 ### 10. Différence en pourcentage du prix au mètre carré entre un appartement de 2 pièces et un appartement de 3 pièces
 
 ``` sql 
-SELECT a.id, a.carrez2pieces, c.carrez3pieces, ((c.carrez3pieces - a.carrez2pieces) / a.carrez2pieces * 100) AS Taux_evolution
-FROM   (SELECT v.id, (v.valeur / b.surface_local) AS carrez2pieces FROM vente v 
-	JOIN bien b ON b.id = v.id_bien
-    WHERE b.total_piece = 2) a
-JOIN   (SELECT v.id, (v.valeur / b.surface_local) AS carrez3pieces FROM vente v 
-	JOIN bien b ON b.id = v.id_bien
-    WHERE b.total_piece = 3) c ON a.id = c.id
-ORDER BY Taux_evolution ASC
+SELECT 
+	(SELECT (SUM(v.valeur) / COUNT(v.id)) / (SUM(b.surface_local) / COUNT(v.id))  FROM vente v
+    JOIN bien b ON b.id = v.id_bien
+    WHERE b.total_piece = 2
+    AND b.type_local = "Appartement") AS moyenMetreCarrez2Pieces,
+	(SELECT (SUM(v.valeur) / COUNT(v.id)) / (SUM(b.surface_local) / COUNT(v.id))  FROM vente v
+    JOIN bien b ON b.id = v.id_bien
+    WHERE b.total_piece = 3
+    AND b.type_local = "Appartement") AS moyenMetreCarrez3Pieces,    
+	(SELECT (moyenMetreCarrez3Pieces - moyenMetreCarrez2Pieces) / moyenMetreCarrez2Pieces * 100) AS 'Différence'
+```
+
+moyenMetreCarrez2Pieces 	moyenMetreCarrez3Pieces 	Différence 	
+4763.409396899574 	        4228.2699306492 	        -11.234379026893786 11 
+
+
+### 11. Les moyennes de valeurs foncières pour le top 3 des communes des départements 6, 13, 33, 59 et 69
+
+``` sql
+SELECT c.nom_com, d.id, AVG(v.valeur) moyenneFonciere FROM vente v
+JOIN bien b ON b.id = v.id_bien
+JOIN commune c ON c.id = b.id_com
+JOIN departement d ON d.id = c.id_dep
+WHERE d.id = 6
+OR d.id = 13
+OR d.id = 33
+OR d.id = 59
+OR d.id = 69
+GROUP BY c.nom_com
+ORDER BY d.id, moyenneFonciere DESC
+
 ```

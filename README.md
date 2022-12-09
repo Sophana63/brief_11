@@ -1,10 +1,12 @@
 # brief 11 - Ma Base de données Immobilière
 
-Le but de ce brief est 
+Le but de ce brief est retravaillé une base de données déjà existante en plusieurs parties.
 ```
 pip install pandas
 pip install numpy
 ```
+
+## Préparer le dictionnaire des données
 ## Demande SQL (création de la database et requêtes)
 
 - Pour la création de la base de données, j'ai créé un fichier 01_create_database.txt contenant le code SQL. Il faudra ouvrir phpMyAdmin et importer ce fichier.
